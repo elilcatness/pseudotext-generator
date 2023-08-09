@@ -1,0 +1,2 @@
+class GeneratorInitializationException(Exception):
+    pass
