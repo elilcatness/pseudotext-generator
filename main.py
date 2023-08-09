@@ -2,15 +2,17 @@ import os
 
 from dotenv import load_dotenv
 
+from src.constants import LIMIT_MODES
 from src.exceptions import GeneratorInitializationException
 from src.gen import Generator
-from src.interface import get_alphabet
+from src.interface import get_alphabet, get_limit, get_limit_mode
 from src.utils import load_from_json, print_fail
 
 
 def main():
     args = []
-    for key in 'sentence_count', 'words_per_sentence', 'min_word_len', 'max_word_len':
+    for key in ('paragraph_count', 'sentence_count', 'words_per_sentence',
+                'min_word_len', 'max_word_len'):
         var = os.getenv(key)
         if not var:
             return print_fail(f'Переменная {key} отсутствует или равна нулю в .env')
@@ -26,8 +28,10 @@ def main():
     print(f'Загружено языков: {len(langs)}\n'
           f'Коды языков: {", ".join(langs.keys())}')
     alphabet = get_alphabet(langs)
+    limit_mode = get_limit_mode(LIMIT_MODES)
+    limit = get_limit()
     try:
-        gen = Generator(alphabet, *args, limit_mode='words', limit=50)
+        gen = Generator(alphabet, *args, limit_mode=limit_mode, limit=limit)
     except GeneratorInitializationException as e:
         return print_fail(str(e))
 

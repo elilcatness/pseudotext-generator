@@ -5,11 +5,12 @@ from src.exceptions import GeneratorInitializationException
 
 
 class Generator:
-    def __init__(self, alphabet: str, sentence_count: int,
+    def __init__(self, alphabet: str, paragraph_count: int, sentence_count: int,
                  words_per_sentence: int, min_word_len: int, max_word_len: int,
                  limit_mode: str, limit: int, end_choices: dict = None):
         """
         :param alphabet:
+        :param paragraph_count:
         :param sentence_count:
         :param words_per_sentence:
         :param min_word_len:
@@ -18,15 +19,28 @@ class Generator:
         :param limit:
         :param end_choices:
         """
-        if limit_mode == 'words' and (
-                real_limit := sentence_count * words_per_sentence) > limit:
+        sentence_count *= paragraph_count
+        word_count = sentence_count * words_per_sentence
+        prefix = (f'При кол-ве предложений {sentence_count} '
+                  f'и кол-ве слов в них {words_per_sentence} ')
+        suffix = ('объём текста должен быть задан не менее, чем %d %s.\n'
+                  f'Текущий заданный лимит: {limit}')
+        if limit_mode == 'words' and word_count > limit:
             raise GeneratorInitializationException(
-                f'При кол-ве предложений {sentence_count} '
-                f'и кол-ве слов в них {words_per_sentence} '
-                'объём текста должен быть задан не менее, '
-                f'чем {real_limit} словами.\n'
-                f'Текущий заданный лимит: {limit}')
+                prefix + suffix % (word_count, 'словами'))
+        symbol_count = word_count * max_word_len + sentence_count
+        if limit_mode == 'symbols' and symbol_count > limit:
+            raise GeneratorInitializationException(
+                prefix + f'а также максимальной длине слова {max_word_len} ' +
+                suffix % (symbol_count, 'символами'))
+        elif limit_mode == 'symbols+spaces' and (
+                symbol_count := symbol_count + word_count - paragraph_count):
+            raise GeneratorInitializationException(
+                prefix + f'а также максимальной длине слова {max_word_len} '
+                         '(с учётом пробелов)' +
+                suffix % (symbol_count, 'символами'))
         self.alphabet = alphabet
+        self.paragraph_count = paragraph_count
         self.sentence_count = sentence_count
         self.word_per_sentence = words_per_sentence
         self.min_word_len = min_word_len
