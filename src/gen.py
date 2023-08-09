@@ -1,48 +1,31 @@
 import random
 
-from src.constants import MIN_WORD_LEN, MAX_WORD_LEN
 from src.exceptions import GeneratorInitializationException
 
 
 class Generator:
-    def __init__(self, alphabet: str, paragraph_count: int, sentence_count: int,
-                 words_per_sentence: int, min_word_len: int, max_word_len: int,
+    def __init__(self, alphabet: str, min_sentence_count: int, max_sentence_count: int,
+                 min_words_per_sentence: int, max_words_per_sentence: int,
+                 min_word_len: int, max_word_len: int,
                  limit_mode: str, limit: int, end_choices: dict = None):
         """
         :param alphabet:
-        :param paragraph_count:
-        :param sentence_count:
-        :param words_per_sentence:
+        :param min_sentence_count:
+        :param max_sentence_count:
+        :param min_words_per_sentence:
+        :param max_words_per_sentence:
         :param min_word_len:
         :param max_word_len:
         :param limit_mode:
         :param limit:
         :param end_choices:
         """
-        sentence_count *= paragraph_count
-        word_count = sentence_count * words_per_sentence
-        prefix = (f'При кол-ве предложений {sentence_count} '
-                  f'и кол-ве слов в них {words_per_sentence} ')
-        suffix = ('объём текста должен быть задан не менее, чем %d %s.\n'
-                  f'Текущий заданный лимит: {limit}')
-        if limit_mode == 'words' and word_count > limit:
-            raise GeneratorInitializationException(
-                prefix + suffix % (word_count, 'словами'))
-        symbol_count = word_count * max_word_len + sentence_count
-        if limit_mode == 'symbols' and symbol_count > limit:
-            raise GeneratorInitializationException(
-                prefix + f'а также максимальной длине слова {max_word_len} ' +
-                suffix % (symbol_count, 'символами'))
-        elif limit_mode == 'symbols+spaces' and (
-                symbol_count := symbol_count + word_count - paragraph_count):
-            raise GeneratorInitializationException(
-                prefix + f'а также максимальной длине слова {max_word_len} '
-                         '(с учётом пробелов)' +
-                suffix % (symbol_count, 'символами'))
+
         self.alphabet = alphabet
-        self.paragraph_count = paragraph_count
-        self.sentence_count = sentence_count
-        self.word_per_sentence = words_per_sentence
+        self.min_sentence_count = min_sentence_count
+        self.max_sentence_count = max_sentence_count
+        self.min_words_per_sentence = min_words_per_sentence
+        self.max_words_per_sentence = max_words_per_sentence
         self.min_word_len = min_word_len
         self.max_word_len = max_word_len
         self.limit_mode = limit_mode
@@ -53,8 +36,8 @@ class Generator:
     def generate_word(self):
         if self.limit <= 0:
             self.in_process = False
-            return
-        word_length = random.randint(MIN_WORD_LEN, MAX_WORD_LEN)
+            return ''
+        word_length = random.randint(self.min_word_len, self.max_word_len)
         word = random.choice(self.alphabet)
         for i in range(word_length - 1):
             idx = self.alphabet.index(word[-1])
@@ -64,25 +47,14 @@ class Generator:
 
     def generate_sentence(self):
         sentence = ''
-        # punct_choices = {0.2: ",", 0.05: " -", 0.02: " -"}
-        # prev_s = None
-        # for i in range(word_count):
-        #     word = generate_word()
-        #     sentence += word
-        #     if i < word_count - 1:
-        #         r = random.random()
-        #         for p, s in sorted(punct_choices.items(), key=lambda item: item[0]):
-        #             if r < p and not (s in (":", " -") and prev_s == s):
-        #                 sentence += s
-        #                 prev_s = s
-        #                 break
-        #         sentence += " "
-        # sentence = sentence[:-1]
         words = []
-        for i in range(self.word_per_sentence):
-            is_last = i == self.word_per_sentence - 1
+        for i in range(self.max_words_per_sentence):
+            is_last = i == self.max_words_per_sentence - 1
             word = self.generate_word()
-            if not word:
+            if len(word) < self.min_word_len:
+                if not words:
+                    return [], 0
+                words[-1] += word
                 break
             if 'symbols' in self.limit_mode:
                 word_len = len(word)
@@ -91,8 +63,6 @@ class Generator:
                 self.limit -= word_len
             elif self.limit_mode == 'words':
                 self.limit -= 1
-        if not words:
-            return
         r = random.random()
         for p, s in sorted(self.end_choices.items(), key=lambda item: item[0]):
             if r < p:
@@ -100,13 +70,18 @@ class Generator:
                 break
         else:
             sentence += '.'
-        return sentence.capitalize()
+        return sentence.capitalize(), len(words)
 
     def generate_paragraph(self):
         sentences = []
-        for _ in range(self.sentence_count):
-            sentences.append(self.generate_sentence())
-            if not self.in_process:
+        for _ in range(self.max_words_per_sentence):
+            sentence, word_count = self.generate_sentence()
+            if word_count < self.min_words_per_sentence:
+                if sentences:
+                    sentences[-1] = (
+                            sentences[-1][:-1] +
+                            sentence +
+                            sentences[-1][-1])
                 break
         return ' '.join(sentences)
 

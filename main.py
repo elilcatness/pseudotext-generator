@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
-from src.constants import LIMIT_MODES
+from src.constants import LIMIT_MODES, GEN_INIT_KEYS
 from src.exceptions import GeneratorInitializationException
 from src.gen import Generator
 from src.interface import get_alphabet, get_limit, get_limit_mode
@@ -11,8 +11,7 @@ from src.utils import load_from_json, print_fail
 
 def main():
     args = []
-    for key in ('paragraph_count', 'sentence_count', 'words_per_sentence',
-                'min_word_len', 'max_word_len'):
+    for key in GEN_INIT_KEYS:
         var = os.getenv(key)
         if not var:
             return print_fail(f'Переменная {key} отсутствует или равна нулю в .env')
