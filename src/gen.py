@@ -89,6 +89,16 @@ class Generator:
         paragraphs = []
         while self.limit > 0:
             p = self.generate_paragraph()
+            if len(p) < self.min_sentence_count and len(p[-1]) and paragraphs:
+                paragraphs[-1].extend(p[-1])
+            for i in range(len(p) - 1, -1, -1):
+                if len(p) >= self.min_sentence_count:
+                    break
+                sentence = p[i]
+                if i - 1 >= 0:
+                    paragraphs[]
+
+
             if (sentence_count := len(p)) < self.min_sentence_count:
                 if paragraphs and sentence_count == 1 and len(p[0]) < self.min_words_per_sentence:
                     paragraphs[-1][-1].extend(p[0])
