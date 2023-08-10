@@ -31,6 +31,9 @@ def main():
     limit = get_limit()
     try:
         gen = Generator(alphabet, *args, limit_mode=limit_mode, limit=limit)
+        with open('output.txt', 'w', encoding='utf-8') as f:
+            text = gen.generate_text()
+            f.write(text)
     except GeneratorInitializationException as e:
         return print_fail(str(e))
 

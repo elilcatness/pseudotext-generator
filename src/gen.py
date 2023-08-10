@@ -1,7 +1,5 @@
 import random
 
-from src.exceptions import GeneratorInitializationException
-
 
 class Generator:
     def __init__(self, alphabet: str, min_sentence_count: int, max_sentence_count: int,
@@ -46,14 +44,13 @@ class Generator:
         return word
 
     def generate_sentence(self):
-        sentence = ''
         words = []
         for i in range(self.max_words_per_sentence):
             is_last = i == self.max_words_per_sentence - 1
             word = self.generate_word()
             if len(word) < self.min_word_len:
                 if not words:
-                    return [], 0
+                    return [word]
                 words[-1] += word
                 break
             if 'symbols' in self.limit_mode:
@@ -63,33 +60,48 @@ class Generator:
                 self.limit -= word_len
             elif self.limit_mode == 'words':
                 self.limit -= 1
-        r = random.random()
-        for p, s in sorted(self.end_choices.items(), key=lambda item: item[0]):
-            if r < p:
-                sentence += s
-                break
-        else:
-            sentence += '.'
-        return sentence.capitalize(), len(words)
+            words.append(word)
+        return words
+        # sentence = ' '.join(words)
+        # r = random.random()
+        # for p, s in sorted(self.end_choices.items(), key=lambda item: item[0]):
+        #     if r < p:
+        #         sentence += s
+        #         break
+        # else:
+        #     sentence += '.'
+        # return sentence.capitalize(), len(words)
 
     def generate_paragraph(self):
         sentences = []
         for _ in range(self.max_words_per_sentence):
-            sentence, word_count = self.generate_sentence()
-            if word_count < self.min_words_per_sentence:
+            sentence = self.generate_sentence()
+            if len(sentence) < self.min_words_per_sentence:
                 if sentences:
-                    sentences[-1] = (
-                            sentences[-1][:-1] +
-                            sentence +
-                            sentences[-1][-1])
-                break
-        return ' '.join(sentences)
+                    sentences[-1].append(sentence)
+                    break
+                return [sentence]
+            sentences.append(sentence)
+        return sentences
+        # return ' '.join(sentences), len(sentences)
 
     def generate_text(self):
         paragraphs = []
-        while self.in_process:
-            paragraphs.append(self.generate_paragraph())
-        return '\n\n'.join(paragraphs)
+        while self.limit > 0:
+            p = self.generate_paragraph()
+            if (sentence_count := len(p)) < self.min_sentence_count:
+                if paragraphs and sentence_count == 1 and len(p[0]) < self.min_words_per_sentence:
+                    paragraphs[-1][-1].extend(p[0])
+            else:
+                paragraphs.append(p)
+        print(paragraphs, sep='\n\n')
+        return paragraphs
+            # if sentence_count < self.min_sentence_count:
+            #     if paragraphs:
+            #         paragraphs[-1] += ' ' + p
+            #     break
+            # paragraphs.append(p)
+        # return '\n\n'.join(paragraphs)
 
 
 def main():

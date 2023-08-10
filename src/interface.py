@@ -15,8 +15,8 @@ def get_limit_mode(modes: list) -> str:
     while True:
         try:
             return modes[int(
-                input('Выберите тип лимита: ' +
-                      '\n'.join([f'{i + 1}. {modes[i]}'
+                input('Выберите тип лимита:\n' +
+                      '\n'.join([f'{i + 1}. {modes[i][1]}'
                                  for i in range(modes_count)])
                       + '\n')) - 1][0]
         except (ValueError, IndexError):
